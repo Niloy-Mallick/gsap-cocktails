@@ -1,21 +1,25 @@
 import { useGSAP } from "@gsap/react";
 import { SplitText } from "gsap/all";
 import gsap from "gsap";
+import { useRef } from "react";
+import { useMediaQuery } from "react-responsive";
 
 const Hero = () => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const isMobile = useMediaQuery({ maxWidth: 767 });
 
     useGSAP(() => {
         const heroSplit = new SplitText(".title", { type: "chars, words" });
         const paragraphSplit = new SplitText(".subtitle", { type: "lines" });
 
-        heroSplit.chars.forEach((char) => char.classList.add("text-gradient"))
+        heroSplit.chars.forEach((char) => char.classList.add("text-gradient"));
 
         gsap.from(heroSplit.chars, {
             yPercent: 100,
             duration: 1.8,
             ease: "expo.out",
             stagger: 0.05
-        })
+        });
 
         gsap.from(paragraphSplit.lines, {
             opacity: 0,
@@ -24,7 +28,7 @@ const Hero = () => {
             ease: "expo.out",
             stagger: 0.05,
             delay: 1
-        })
+        });
 
         gsap.timeline({
             scrollTrigger: {
@@ -35,27 +39,64 @@ const Hero = () => {
             }
         })
             .to(".right-leaf", { y: 200 }, 0)
-            .to(".left-leaf", { y: -200 }, 0)
+            .to(".left-leaf", { y: -200 }, 0);
+
+        /*
+         * Start value:
+         * if Mobile: play Video as animation starts when top of element reaches 50% of the viewport
+         * else device is not mobile: play Video as animation starts when center of element reaches 60% of the viewport
+         * 
+         * End value:
+         * if Mobile: stop Video as animation when 120% of the element reaches the top of the viewport
+         * else device is not mobile: stop Video as animation ends when bottom of the element reaches the top of the viewport
+        */
+        const startValue = isMobile ? "top 50%" : "center 60%";
+        const endValue = isMobile ? "120% top" : "bottom top";
+
+        const cocktailGlassTimeline = gsap.timeline({
+            scrollTrigger: {
+                trigger: "video",
+                start: startValue,
+                end: endValue,
+                scrub: true,
+                // pin keeps the video stuck in the screen if you don't scroll
+                pin: true
+            }
+        });
+
+        if (videoRef.current !== null) {
+            videoRef.current.onloadedmetadata = () => {
+                videoRef.current !== null &&
+                    cocktailGlassTimeline.to(videoRef.current, {
+                        currentTime: videoRef.current.duration
+                    })
+            }
+        }
     }, []);
 
     return (
-        <section id="hero" className="noisy">
-            <h1 className="title">MOJITO</h1>
-            <img src="/images/hero-left-leaf.png" alt="hero-left-leaf" className="left-leaf" />
-            <img src="/images/hero-right-leaf.png" alt="hero-right-leaf" className="right-leaf" />
-            <div className="body">
-                <div className="content">
-                    <div className="space-y-5 hidden md:block">
-                        <p>Cool. Crisp. Classic</p>
-                        <p className="subtitle">Sip the Spirit <br /> of Summer</p>
+        <>
+            <section id="hero" className="noisy">
+                <h1 className="title">MOJITO</h1>
+                <img src="/images/hero-left-leaf.png" alt="hero-left-leaf" className="left-leaf" />
+                <img src="/images/hero-right-leaf.png" alt="hero-right-leaf" className="right-leaf" />
+                <div className="body">
+                    <div className="content">
+                        <div className="space-y-5 hidden md:block">
+                            <p>Cool. Crisp. Classic</p>
+                            <p className="subtitle">Sip the Spirit <br /> of Summer</p>
+                        </div>
+                        <div className="view-cocktails">
+                            <p className="subtitle">Every cocktail on our menu is a blend of premium ingredients, creative flair, and timeless recipes - designed to delight your senses</p>
+                            <a href="#cocktails">View Cocktails</a>
+                        </div>
                     </div>
-                    <div className="view-cocktails">
-                        <p className="subtitle">Every cocktail on our menu is a blend of premium ingredients, creative flair, and timeless recipes - designed to delight your senses</p>
-                    </div>
-                    <a href="#cocktails">View Cocktails</a>
                 </div>
+            </section>
+            <div className="video absolute inset-0">
+                <video ref={videoRef} src="/videos/output.mp4" muted playsInline preload="auto" />
             </div>
-        </section>
+        </>
     )
 }
 
